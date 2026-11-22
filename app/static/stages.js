@@ -210,4 +210,73 @@ function archive({history,run}) {
     ['持续门槛',`${run.sustained_hours} h`],['耗时',`${run.elapsed_ms} ms`],['归卷柜号',run.cabinets.map((item) => item.id).join('、')]]));
 }
 
-export const stages = {intake, assignment, pairing, gradient, episodes, audit, archive};
+async function primary({get, base, signal, params}) {
+  const meta = q('#primary-meta');
+  const versionList = q('#primary-versions');
+  const ledgerTarget = q('#primary-ledger');
+  const handoff = q('#primary-handoff');
+  const filter = q('#primary-filter');
+  const build = q('#primary-build');
+
+  const drawHandoff = (doc) => {
+    const h = doc.handoff;
+    const slips = h.tickets.map((ticket) => {
+      const slip = el('div',null,'proof-slip');
+      slip.append(el('strong',`${ticket.id} · ${words[ticket.code] ?? ticket.code}`),
+        el('p',`${stamp(ticket.at_utc)}${ticket.episode ? ` · 核销 ${ticket.episode}` : ''}`));
+      return slip;
+    });
+    handoff.replaceChildren(
+      entries([['持续异常段', h.sustained.join('、') || '无'], ['瞬时段', h.transient.join('、') || '无'],
+        ['缺工单持续段', h.unreported_episodes.join('、') || '无'],
+        ['缺证柜时', h.missing_hours.map((value) => hour(value)).join('、') || '无']]),
+      el('h3','工单勾稽'), ...(slips.length ? slips : [el('p','本柜无报警工单。','empty')]));
+  };
+
+  const draw = (doc) => {
+    meta.replaceChildren(entries([['版次',`v${doc.version}`],['换装批次',doc.batch],
+      ['裁定规则',doc.adjudication_policy],['出具',stamp(doc.created)],['结论摘要',doc.digest.slice(0,16)],
+      ['柜时',`${doc.hour_tally.stable} 稳 / ${doc.hour_tally.abnormal} 异常 / ${doc.hour_tally.missing} 缺证`]]));
+    versionList.replaceChildren(el('span',`v${doc.version} · ${doc.batch.slice(0,8)} · 当前版`,'table-action'));
+    const rows = doc.ledger.filter((entry) => filter.value === 'all' || entry.verdict === filter.value);
+    table(ledgerTarget, rows, [
+      ['柜时',(entry) => stamp(entry.start),'mono'],
+      ['主探头',(entry) => entry.primary_probe ?? '—','mono'],
+      ['裁定',(entry) => state(entry.verdict)],
+      ['依据',(entry) => words[entry.reason] ?? entry.reason],
+      ['重叠窗',(entry) => entry.overlap_window ? `${stamp(entry.overlap_window.start)} 起` : '—','mono'],
+      ['比对探头',(entry) => entry.comparison?.present?.join(' / ') ?? '—','mono'],
+      ['候选原行',(entry) => entry.candidate_rows.map(rowLabel).join(' / '),'mono'],
+    ],'该筛选下无柜时。');
+    drawHandoff(doc);
+  };
+
+  const load = async () => {
+    try {
+      draw(await get(base + '/primary'));
+    } catch (error) {
+      if (error.message?.includes('404') || error.message?.includes('主探头')) {
+        meta.replaceChildren(el('p','该归卷尚未出具主探头结论。','empty'));
+        ledgerTarget.replaceChildren(el('p','出具后按柜时列示采用探头与重叠比对依据。','empty'));
+        handoff.replaceChildren();
+        versionList.replaceChildren();
+      } else fault(meta, error);
+    }
+  };
+
+  build.addEventListener('click', async () => {
+    build.disabled = true;
+    try {
+      const reply = await request(`${base}/primary`, {method:'POST'});
+      draw(reply.conclusion);
+    } catch (error) {
+      fault(meta, error);
+    } finally {
+      build.disabled = false;
+    }
+  }, {signal});
+  filter.addEventListener('change', () => load(), {signal});
+  await load();
+}
+
+export const stages = {intake, assignment, pairing, gradient, episodes, audit, primary, archive};

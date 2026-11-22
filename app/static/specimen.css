@@ -21,7 +21,7 @@
 .table-action { padding: 0; border: 0; color: var(--accent-dark); background: transparent; text-decoration: underline; text-underline-offset: 3px; font-family: var(--mono); text-align: left; }
 .state { display: inline-block; font-size: 11px; white-space: nowrap; }
 .state::before { content: "■"; margin-right: 4px; font-size: 8px; vertical-align: 1px; }
-.stable, .state.matched { color: var(--stable); }
+.stable, .state.matched, .state.adopted { color: var(--stable); }
 .abnormal, .state.sustained { color: var(--unstable); }
 .missing { color: var(--missing); }
 .state.transient, .state.uncertain { color: var(--warn); }

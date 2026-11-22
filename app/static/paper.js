@@ -8,6 +8,9 @@ export const words = {
   LOWER_CONTENTION:'下层读数占用', CI_OVERLAP:'区间跨阈值', MISSING_RH:'湿度缺证',
   UNUSED_LOWER:'未用下层', EXTRA_UPPER:'额外上层', LATE_RECEIPT:'迟报', temperature:'温度', humidity:'湿度',
   upper:'上层', lower:'下层', accepted:'采信', isolated:'隔离', header:'栏头', duplicate:'重复', blank:'空行',
+  ADOPTED:'已采用', MISSING:'缺证',
+  OVERLAP_AGREED:'重叠比对一致', OVERLAP_DISPUTED:'重叠读数分歧', OVERLAP_UNVERIFIED:'缺重叠比对',
+  SOLE_OUTSIDE_OVERLAP:'单探头在位', EMPTY_POSITION:'无在位读数',
 };
 const timeZone = 'Asia/Shanghai';
 const clock = new Intl.DateTimeFormat('zh-CN', {timeZone, hour:'2-digit',minute:'2-digit',hourCycle:'h23'});

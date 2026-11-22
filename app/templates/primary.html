@@ -1,0 +1,25 @@
+<div class="triple split-records">
+  <section class="panel">
+    <div class="panel__head"><h2>裁定版次</h2><button id="primary-build" class="button fill" type="button">出具主探头结论</button></div>
+    <div class="panel__body scroll">
+      <div id="primary-meta"></div>
+      <div id="primary-versions" class="history-list"></div>
+    </div>
+  </section>
+  <section class="panel wide-pane">
+    <div class="panel__head"><h2>柜时主探头账 <sup>1</sup></h2>
+      <label>裁定 <select id="primary-filter" aria-label="裁定结果">
+        <option value="all">全部</option><option value="ADOPTED">已采用</option><option value="MISSING">缺证</option>
+      </select></label>
+    </div>
+    <div id="primary-ledger" class="scroll"></div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>异常与工单衔接 <sup>2</sup></h2></div>
+    <div class="panel__body scroll" id="primary-handoff" aria-live="polite"></div>
+  </section>
+</div>
+<ol class="footnotes">
+  <li>重叠期双探头读数落在合并不确定度 1.96 倍带内才判一致；分歧或只有一只读数的柜时保留缺证，不整段认一只。</li>
+  <li>异常段按裁定后的主探头重算，缺证柜时切断持续段；工单仍按柜时勾稽，缺证小时的报警单列证据不足。</li>
+</ol>

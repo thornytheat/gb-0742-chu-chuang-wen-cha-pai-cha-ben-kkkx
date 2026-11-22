@@ -55,7 +55,7 @@ async function render(run, requested, records, params = new URLSearchParams()) {
   content.hidden = true;
   put('#statusbar','正在核取归卷');
   const audit = await get(`${base}/audit`);
-  await stages[stage]({get,base,run,cabinet:cabinetId,history:records,audit,signal,params});
+  await stages[stage]({get,base,run,cabinet:cabinetId,history:records,audit,signal,params,request});
   page.run = run;
   page.cabinet = cabinetId;
   choose(cabinet,run.cabinets.map((item) => [item.id,item.id]),cabinetId);

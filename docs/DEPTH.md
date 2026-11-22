@@ -13,6 +13,7 @@
 | M5 异常持续 | 定位连续与瞬时异常段及其原行 | `GET /api/runs/{run_id}/episodes/{cabinet}` | `app/modules/episodes/segment.py` | `tests/test_episodes.py` |
 | M6 值班单勾稽 | 核对柜时与图档行，查报警误报漏报 | `GET /api/runs/{run_id}/audit` | `app/modules/audit/reconcile.py` | `tests/test_audit.py` |
 | M7 证据归卷 | 运行、复算或下载带摘要的归卷 | `POST /api/runs` `POST /api/runs/{run_id}/rerun` `GET /api/runs/{run_id}/export` | `app/modules/archive/pipeline.py` `app/modules/archive/service.py` `app/modules/archive/proof.py` `app/store.py` | `tests/test_archive.py` |
+| M8 主探头裁定 | 重叠期逐柜时比对，出主探头结论与版次 | `POST /api/runs/{run_id}/primary` `GET /api/runs/{run_id}/primary` `GET /api/runs/{run_id}/primary/versions` | `app/modules/primary/adjudicate.py` `app/modules/primary/reevaluate.py` `app/modules/primary/service.py` | `tests/test_primary.py` |
 
 ## 陷阱登记
 
@@ -34,6 +35,10 @@
 | TRAP-17 | `night-points.csv` 第二段改中文并换序 | 收报和测量栏对调 | 每段独立映射字段 | `app/modules/intake/readings.py` | `tests/test_intake.py::test_header_switch_changes_field_positions` |
 | TRAP-23 | 探头在 13:00 馆内时间换柜 | 同一时刻两柜采信 | 左闭右开选择新柜 | `app/modules/assignment/windows.py` | `tests/test_assignment.py::test_adjacent_windows_are_half_open_at_exact_move` |
 | TRAP-25 | 在混合部署契约上叠加同柜同层窗 | 任选一个探头 | 标重叠并拒用重叠段 | `app/modules/assignment/windows.py` | `tests/test_assignment.py::test_second_probe_at_same_position_marks_overlap_only` |
+| TRAP-31 | 换探头重叠期两只读数差 2.2 °C | 整段认一只，边界小时按错探头入账 | 超 1.96 倍合并不确定度即分歧，该柜时保留缺证 | `app/modules/primary/adjudicate.py` | `tests/test_primary.py::test_disputed_overlap_hour_stays_missing_without_picking_a_probe` |
+| TRAP-32 | 重叠期只有旧探头一只读数 | 用单只读数把账补齐 | 缺比对证据，判 `OVERLAP_UNVERIFIED` 缺证 | `app/modules/primary/adjudicate.py` | `tests/test_primary.py::test_single_reading_overlap_hour_is_unverified_missing` |
+| TRAP-33 | 同批换装重复提交结论 | 每次重跑新增版次 | 批次键幂等，同批返回同一版次 | `app/modules/primary/service.py` `app/store.py` | `tests/test_primary.py::test_same_batch_rerun_returns_same_version` |
+| TRAP-34 | 结论写入中途磁盘失败 | 留下半截空版本 | 事务回滚，旧版结论保留可读 | `app/store.py` | `tests/test_primary.py::test_write_failure_rolls_back_and_keeps_old_version` |
 
 真实反例还有迁移前一分钟的下层读数不能与迁移后的上层配对，近中点无证读数不能挤掉同小时有效候选，区间端点的展示舍入不能改变判级，缺证切断连续异常，工单不能重复清销同一段。
 
@@ -42,3 +47,4 @@
 - 应监测柜时按键集合核对，柜时数分到稳定、异常、缺证。
 - 工单与持续异常按柜时定位，列出重复报警和未报持续段。
 - 原始 CSV、契约、规则版次确定归卷键。复算和证据导出会验证结果 SHA-256。
+- 主探头结论不改归卷原档：批次键锚定归卷号与裁定算法版次，重叠分歧和缺比对小时保留缺证，同批重跑不新增版次，写入失败保留旧版。

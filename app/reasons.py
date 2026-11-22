@@ -9,6 +9,12 @@ REASONS = {
 
     "MISSING_UPPER": "缺上层测量", "NO_COMPATIBLE_LOWER": "无可用下层证据", "MISSING_RH": "湿度证据不足",
     "CI_OVERLAP": "置信区间跨阈值",
+
+    "OVERLAP_AGREED": "重叠期双探头读数一致，按主探头采用",
+    "OVERLAP_DISPUTED": "重叠期双探头读数对不上，整时缺证",
+    "OVERLAP_UNVERIFIED": "重叠期只有一只读数，缺比对证据",
+    "SOLE_OUTSIDE_OVERLAP": "非重叠期单探头在位",
+    "EMPTY_POSITION": "该柜时无在位探头读数",
 }
 
 

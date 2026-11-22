@@ -27,6 +27,22 @@ class ArchiveStore:
                     input TEXT NOT NULL
                 )
             """)
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS primary_conclusions (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    batch TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    doc TEXT NOT NULL,
+                    digest TEXT NOT NULL,
+                    created TEXT NOT NULL,
+                    UNIQUE(run_id, batch)
+                )
+            """)
+            connection.execute("""
+                CREATE INDEX IF NOT EXISTS primary_conclusions_run
+                ON primary_conclusions(run_id, version)
+            """)
 
     def insert(self, manifest, evidence, source):
         with self.connect() as connection:
@@ -45,3 +61,38 @@ class ArchiveStore:
     def history(self):
         with self.connect() as connection:
             return [json.loads(row[0]) for row in connection.execute("SELECT manifest FROM shift_archives ORDER BY rowid DESC")]
+
+    def conclusion_version(self, run_id, batch):
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT doc FROM primary_conclusions WHERE run_id = ? AND batch = ?",
+                (run_id, batch)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def latest_conclusion(self, run_id):
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT doc FROM primary_conclusions WHERE run_id = ? ORDER BY version DESC LIMIT 1",
+                (run_id,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def conclusion_versions(self, run_id):
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT doc FROM primary_conclusions WHERE run_id = ? ORDER BY version",
+                (run_id,)).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def save_conclusion(self, doc, digest, created):
+        """同批换装重跑命中唯一键即复用旧版；写入失败整体回滚，旧版保留。"""
+        with self.connect() as connection:
+            cursor = connection.execute(
+                "INSERT INTO primary_conclusions (id, run_id, batch, version, doc, digest, created) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(run_id, batch) DO NOTHING",
+                (doc["id"], doc["run_id"], doc["batch"], doc["version"],
+                 canonical(doc), digest, created))
+            fresh = cursor.rowcount == 1
+            row = connection.execute(
+                "SELECT doc FROM primary_conclusions WHERE run_id = ? AND batch = ?",
+                (doc["run_id"], doc["batch"])).fetchone()
+        return json.loads(row[0]), fresh
